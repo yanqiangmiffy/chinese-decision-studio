@@ -6,7 +6,12 @@
 
 FastAPI · React · SSE · PostgreSQL · Docker Compose
 
-[快速开始](#-快速开始) · [场景库](#-场景库) · [实测发现](#-实测发现) · [架构](#-架构) · [决策服务](https://github.com/yanqiangmiffy/chinese-decision#部署)
+[![Chinese Decision](https://img.shields.io/badge/Model%20Code-chinese--decision-black?logo=github)](https://github.com/yanqiangmiffy/chinese-decision)
+[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-chinese--decision--0.8b-yellow?logo=huggingface)](https://huggingface.co/quincyqiang/chinese-decision-0.8b)
+[![ModelScope](https://img.shields.io/badge/ModelScope-chinese--decision--0.8b-624aff)](https://modelscope.cn/models/quincyqiang/chinese-decision-0.8b)
+[![GGUF](https://img.shields.io/badge/GGUF-Q8__0%20%C2%B7%20CPU-brightgreen)](https://huggingface.co/quincyqiang/chinese-decision-0.8b-gguf)
+
+[快速开始](#-快速开始) · [相关资源](#-相关资源) · [场景库](#-场景库) · [实测发现](#-实测发现) · [架构](#-架构) · [决策服务](https://github.com/yanqiangmiffy/chinese-decision#部署)
 
 </div>
 
@@ -21,6 +26,15 @@ FastAPI · React · SSE · PostgreSQL · Docker Compose
 - ⚡ **性能压测**：实时吞吐 / 延迟曲线，并发扫描 1→64 画出服务拐点
 - 🗂 **历史记录**：每次决策留底，标注后一键加入评测集
 - 📖 **接入文档**：接口参考、设计模式、已知短板与对策
+
+## 🔗 相关资源
+
+| 资源 | 说明 | 链接 |
+| --- | --- | --- |
+| 测试平台（本仓库） | Decision Studio：决策实验台、场景库、鲁棒性实验室、评测中心与性能压测 | [GitHub](https://github.com/yanqiangmiffy/chinese-decision-studio) |
+| 模型代码 | 训练、评测、GGUF 导出与 HTTP 服务（GPU / CPU），平台连接的决策服务就在这里 | [GitHub](https://github.com/yanqiangmiffy/chinese-decision) |
+| 模型（BF16） | 合并后的权重与校准温度，transformers 推理 | [Hugging Face](https://huggingface.co/quincyqiang/chinese-decision-0.8b) · [ModelScope](https://modelscope.cn/models/quincyqiang/chinese-decision-0.8b) |
+| 模型（GGUF Q8_0） | llama.cpp 推理，CPU 即可部署，不需要 PyTorch | [Hugging Face](https://huggingface.co/quincyqiang/chinese-decision-0.8b-gguf) · [ModelScope](https://modelscope.cn/models/quincyqiang/chinese-decision-0.8b-gguf) |
 
 ## ✨ 场景库
 
@@ -123,10 +137,10 @@ docker compose up -d --build
 
 决策服务（推理）的代码和部署脚本都在模型仓库 [chinese-decision](https://github.com/yanqiangmiffy/chinese-decision) 里，本仓库只是平台。两种部署方式接口一致，部署好后把地址填进 `.env` 的 `DECISION_BASE_URL`：
 
-| 方式 | 服务 | 说明 |
-| --- | --- | --- |
-| GPU | `scripts/serve_gpu.py` | 动态批处理、训练进度、检查点热更新，部署见 [deploy/gpu](https://github.com/yanqiangmiffy/chinese-decision/tree/main/deploy/gpu) |
-| CPU | `scripts/serve.py --backend gguf` | Q8_0 GGUF + llama.cpp，不需要 GPU，逐题前向，部署见 [docs/CPU.md](https://github.com/yanqiangmiffy/chinese-decision/blob/main/docs/CPU.md) |
+| 方式 | 服务 | 权重 | 说明 |
+| --- | --- | --- | --- |
+| GPU | `scripts/serve_gpu.py` | BF16：[Hugging Face](https://huggingface.co/quincyqiang/chinese-decision-0.8b) · [ModelScope](https://modelscope.cn/models/quincyqiang/chinese-decision-0.8b) | 动态批处理、训练进度、检查点热更新，部署见 [deploy/gpu](https://github.com/yanqiangmiffy/chinese-decision/tree/main/deploy/gpu) |
+| CPU | `scripts/serve.py --backend gguf` | GGUF：[Hugging Face](https://huggingface.co/quincyqiang/chinese-decision-0.8b-gguf) · [ModelScope](https://modelscope.cn/models/quincyqiang/chinese-decision-0.8b-gguf) | Q8_0 GGUF + llama.cpp，不需要 GPU，逐题前向，部署见 [docs/CPU.md](https://github.com/yanqiangmiffy/chinese-decision/blob/main/docs/CPU.md) |
 
 接 CPU 服务时单批评测耗时更长，建议在 `.env` 里设 `EVAL_BATCH_SIZE=16`，避免单批超过 `DECISION_TIMEOUT`（默认 120 秒）；CPU 服务没有热更新，`DECISION_ADMIN_TOKEN` 留空。
 
