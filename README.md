@@ -4,9 +4,9 @@
 
 **Chinese Decision 决策模型的测试平台：一次前向，直接看见候选项概率**
 
-FastAPI · React · SSE · PostgreSQL · Docker Compose · 动态批处理推理服务
+FastAPI · React · SSE · PostgreSQL · Docker Compose
 
-[快速开始](#-快速开始) · [场景库](#-场景库) · [实测发现](#-实测发现) · [架构](#-架构) · [决策服务](decision-service/README.md)
+[快速开始](#-快速开始) · [场景库](#-场景库) · [实测发现](#-实测发现) · [架构](#-架构) · [决策服务](https://github.com/yanqiangmiffy/chinese-decision#部署)
 
 </div>
 
@@ -101,7 +101,7 @@ FastAPI · React · SSE · PostgreSQL · Docker Compose · 动态批处理推理
 
 ## 🚀 快速开始
 
-需要 Docker；决策服务需要一台有 GPU 的机器（见 [decision-service](decision-service/README.md)）。
+需要 Docker，以及一个已经部署好的决策服务（GPU 或 CPU 均可，见下面的[部署决策服务](#部署决策服务)）。
 
 ```bash
 git clone <this repo> decision-studio && cd decision-studio
@@ -121,12 +121,14 @@ docker compose up -d --build
 
 ### 部署决策服务
 
-```bash
-./decision-service/deploy.sh                  # 默认部署到 gpu-server.example.com，GPU 2，端口 8003
-GPU=5 PORT=8013 ./decision-service/deploy.sh  # 换卡、换端口
-```
+决策服务（推理）的代码和部署脚本都在模型仓库 [chinese-decision](https://github.com/yanqiangmiffy/chinese-decision) 里，本仓库只是平台。两种部署方式接口一致，部署好后把地址填进 `.env` 的 `DECISION_BASE_URL`：
 
-脚本会把 chinese-decision 的 `decision` 包（提示词编译器）和服务代码同步到服务器，把训练目录里的 best adapter 复制成不可变快照，再在 tmux 会话 `decision` 里启动服务（崩溃自动重启）。详见 [decision-service/README.md](decision-service/README.md)。
+| 方式 | 服务 | 说明 |
+| --- | --- | --- |
+| GPU | `scripts/serve_gpu.py` | 动态批处理、训练进度、检查点热更新，部署见 [deploy/gpu](https://github.com/yanqiangmiffy/chinese-decision/tree/main/deploy/gpu) |
+| CPU | `scripts/serve.py --backend gguf` | Q8_0 GGUF + llama.cpp，不需要 GPU，逐题前向，部署见 [docs/CPU.md](https://github.com/yanqiangmiffy/chinese-decision/blob/main/docs/CPU.md) |
+
+接 CPU 服务时单批评测耗时更长，建议在 `.env` 里设 `EVAL_BATCH_SIZE=16`，避免单批超过 `DECISION_TIMEOUT`（默认 120 秒）；CPU 服务没有热更新，`DECISION_ADMIN_TOKEN` 留空。
 
 ### 本地开发
 
@@ -151,8 +153,8 @@ flowchart LR
         api["backend<br/>FastAPI"]
         pg[("PostgreSQL<br/>历史 · 评测集 · 评测结果 · 压测")]
     end
-    subgraph gpu["GPU 服务器"]
-        svc["decision-service<br/>动态批处理 · /v1/systemone · /v1/batch"]
+    subgraph gpu["推理服务器（chinese-decision）"]
+        svc["决策服务<br/>serve_gpu.py（GPU）/ serve.py（CPU）"]
         run[("训练目录<br/>best adapter（只读）")]
     end
     llm["对照大模型<br/>vLLM · OpenAI 兼容"]
@@ -165,7 +167,7 @@ flowchart LR
     api -. "可选：logprobs 对照" .-> llm
 ```
 
-- **决策服务**（[`decision-service/serve.py`](decision-service/serve.py)）：兼容 hmm / System One 接口；并发请求在 4 ms 窗口内合批，按 token 预算切 micro-batch；提供批量、提示词编译、训练进度和检查点热更新接口；空闲时释放缓存显存（GPU 是共用的）。
+- **决策服务**（[chinese-decision](https://github.com/yanqiangmiffy/chinese-decision) 仓库的 `scripts/serve_gpu.py`）：兼容 hmm / System One 接口；并发请求在 4 ms 窗口内合批，按 token 预算切 micro-batch；提供批量、提示词编译、训练进度和检查点热更新接口；空闲时释放缓存显存（GPU 是共用的）。
 - **后端**：只做协议转换和编排——证据归因、鲁棒性变体、评测运行（后台任务 + SSE 进度）、压测（SSE）都是“构造一批请求 → 一次 `/v1/batch`”。
 - **前端**：没有 UI 组件库和图表库，图表都是手写 SVG；按页面懒加载。
 
@@ -197,7 +199,6 @@ CJ-Bench 的许可按数据来源分别适用（部分为非商业许可），�
 
 ```text
 decision-studio/
-├── decision-service/          # GPU 服务器上的推理服务：serve.py + 部署 / 启动 / 快照脚本
 ├── backend/
 │   ├── app/
 │   │   ├── routers/           # health · decide · history · suites · runs · bench：只做协议转换

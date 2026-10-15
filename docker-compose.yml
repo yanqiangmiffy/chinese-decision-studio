@@ -5,7 +5,7 @@
 #   平台      http://localhost:8080
 #   接口文档  http://localhost:8080/api/docs
 #
-# 决策服务（GPU）不在这里：它跑在 GPU 服务器上（decision-service/），通过 DECISION_BASE_URL 连接。
+# 决策服务不在这里：它在 chinese-decision 仓库（GPU 或 CPU 部署），通过 DECISION_BASE_URL 连接。
 # 数据放在 named volume 里（按项目名自动隔离）。
 
 name: decision-studio

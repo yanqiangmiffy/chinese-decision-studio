@@ -1,5 +1,5 @@
 # 常用命令。Windows 上没有 make 的话，直接复制每条命令执行即可。
-.PHONY: help up down logs ps restart deploy-model dev-backend dev-frontend test lint build seed screenshots
+.PHONY: help up down logs ps restart dev-backend dev-frontend test lint build seed screenshots
 
 help:          ## 列出所有命令
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -18,9 +18,6 @@ ps:            ## 查看容器状态
 
 restart:       ## 改了 .env 之后重启后端
 	docker compose up -d backend
-
-deploy-model:  ## 部署 / 重启 GPU 服务器上的决策服务
-	./decision-service/deploy.sh
 
 dev-backend:   ## 本地跑后端（默认用 backend/.env 里的 DATABASE_URL）
 	cd backend && uvicorn app.main:app --reload --port 8090

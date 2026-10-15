@@ -271,7 +271,7 @@ elif intent["choice"] == "refund_status":
                   决策服务
                 </b>
                 <p>
-                  GPU 服务器上 tmux 会话 <code>decision</code>，崩溃后 5 秒自动重启。地址 <code>{base}</code>。日志在 <code>decision-service/logs/serve.log</code>。
+                  代码在 chinese-decision 仓库：GPU 版 <code>scripts/serve_gpu.py</code> 跑在 tmux 会话 <code>decision</code> 里，崩溃后 5 秒自动重启；CPU 版 <code>scripts/serve.py</code> 加载 GGUF。地址 <code>{base}</code>。
                 </p>
               </div>
               <div className="pattern">

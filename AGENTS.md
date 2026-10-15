@@ -4,12 +4,11 @@
 
 ## 这是什么
 
-Chinese Decision 决策模型的测试平台：FastAPI + React + SSE + PostgreSQL，`docker compose up -d --build` 一条命令启动。推理服务（`decision-service/`）单独跑在 GPU 服务器上，平台通过 `DECISION_BASE_URL` 调用它。
+Chinese Decision 决策模型的测试平台：FastAPI + React + SSE + PostgreSQL，`docker compose up -d --build` 一条命令启动。推理服务不在本仓库：它在 chinese-decision 仓库（GPU 版 `scripts/serve_gpu.py`，CPU 版 `scripts/serve.py`），平台通过 `DECISION_BASE_URL` 调用它。
 
 ## 目录地图
 
 ```text
-decision-service/        # GPU 推理服务：serve.py（动态批处理）+ deploy/start/run/snapshot 脚本
 backend/app/
 ├── main.py              # 入口：生命周期、异常映射、路由注册；Swagger 在 /api/docs
 ├── config.py            # 所有配置（pydantic-settings），都能被环境变量覆盖
@@ -40,7 +39,6 @@ frontend/src/
 cd backend && python -m pytest && ruff check . && ruff format --check .
 cd frontend && npm run build && npm run lint
 docker compose up -d --build
-./decision-service/deploy.sh                 # 部署 / 重启推理服务
 python scripts/screenshots.py --run <id>     # 重新生成 README 截图
 ```
 

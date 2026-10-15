@@ -18,10 +18,10 @@ class Settings(BaseSettings):
     # ---- 存储：历史记录、评测集、评测运行、压测记录
     DATABASE_URL: str = "postgresql+asyncpg://studio:studio@localhost:5432/studio"
 
-    # ---- 决策服务：chinese-decision 的推理服务（decision-service/serve.py）
+    # ---- 决策服务：chinese-decision 的推理服务（GPU：scripts/serve_gpu.py；CPU：scripts/serve.py）
     DECISION_BASE_URL: str = "http://gpu-server.example.com:8003"
     DECISION_TIMEOUT: float = 120.0
-    # 热更新检查点用的令牌，和服务器上 decision-service/.admin-token 一致；留空 = 平台里不提供热更新
+    # 热更新检查点用的令牌，和 GPU 服务器部署目录下的 .admin-token 一致；留空 = 平台里不提供热更新
     DECISION_ADMIN_TOKEN: str = ""
 
     # ---- 对照大模型：任意 OpenAI 兼容端点；留空 = 不启用"决策模型 vs 大模型"对比
