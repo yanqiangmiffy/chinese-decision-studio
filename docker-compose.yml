@@ -1,0 +1,77 @@
+# Decision Studio —— 决策模型测试平台，一条命令拉起
+#
+#   cp .env.example .env && docker compose up -d --build
+#
+#   平台      http://localhost:8080
+#   接口文档  http://localhost:8080/api/docs
+#
+# 决策服务（GPU）不在这里：它跑在 GPU 服务器上（decision-service/），通过 DECISION_BASE_URL 连接。
+# 数据放在 named volume 里（按项目名自动隔离）。
+
+name: decision-studio
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-studio}:${POSTGRES_PASSWORD:-studio}@postgres:5432/${POSTGRES_DB:-studio}
+  DECISION_BASE_URL: ${DECISION_BASE_URL:-http://gpu-server.example.com:8003}
+  DECISION_TIMEOUT: ${DECISION_TIMEOUT:-120}
+  DECISION_ADMIN_TOKEN: ${DECISION_ADMIN_TOKEN:-}
+  LLM_BASE_URL: ${LLM_BASE_URL:-}
+  LLM_API_KEY: ${LLM_API_KEY:-EMPTY}
+  LLM_MODEL: ${LLM_MODEL:-Qwen3-32B}
+  LLM_EXTRA_BODY: ${LLM_EXTRA_BODY:-}
+  LLM_EVAL_LIMIT: ${LLM_EVAL_LIMIT:-200}
+  LLM_CONCURRENCY: ${LLM_CONCURRENCY:-8}
+  EVAL_BATCH_SIZE: ${EVAL_BATCH_SIZE:-64}
+  BENCH_MAX_CONCURRENCY: ${BENCH_MAX_CONCURRENCY:-256}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  TZ: ${TZ:-Asia/Shanghai}
+
+services:
+  # ------------------------------------------------ 关系库：历史记录 / 评测集 / 评测结果 / 压测记录
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-studio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-studio}
+      POSTGRES_DB: ${POSTGRES_DB:-studio}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432" # 只绑本机：方便本地跑后端 / 连数据库客户端
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-studio} -d ${POSTGRES_DB:-studio}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ------------------------------------------------ 应用
+  backend:
+    build:
+      context: ./backend
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+    environment: *app-env
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # 决策服务 / 大模型在宿主机上时用（Linux 必加）
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8090}:8000" # 调试用；对外只暴露 nginx
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:

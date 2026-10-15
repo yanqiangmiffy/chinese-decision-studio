@@ -1,0 +1,6 @@
+# 统一用 LF。Windows 上编辑过的 .sh 带 CRLF，进容器就会报 no such file or directory
+* text=auto eol=lf
+*.sh text eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

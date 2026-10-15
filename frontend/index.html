@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#070a12" />
+    <meta name="description" content="Decision Studio：Chinese Decision 决策模型测试平台——实验台、场景库、鲁棒性实验室、评测中心与压测" />
+    <title>Decision Studio · 决策工坊</title>
+    <script>
+      // 在首帧之前确定主题，避免闪烁
+      try { document.documentElement.dataset.theme = localStorage.getItem("ds-theme") || "dark"; } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

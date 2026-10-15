@@ -1,0 +1,94 @@
+/* ============================================================================
+   设计令牌：深色为默认主题，浅色主题只覆盖颜色。
+   品牌色：紫 → 靛 → 青的渐变，代表"从不确定到确定"。
+   ============================================================================ */
+:root {
+  --font: "Inter Variable", "Inter", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei",
+    "Noto Sans SC", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono Variable", "JetBrains Mono", "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --sidebar: 248px;
+  --sidebar-collapsed: 76px;
+
+  /* 品牌 */
+  --violet: #8b5cf6;
+  --indigo: #6366f1;
+  --cyan: #22d3ee;
+  --brand: #7c6cff;
+  --brand-grad: linear-gradient(135deg, #a78bfa 0%, #6366f1 48%, #22d3ee 100%);
+  --brand-grad-soft: linear-gradient(135deg, rgba(167, 139, 250, 0.16), rgba(34, 211, 238, 0.12));
+
+  /* 语义色 */
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --bad: #fb7185;
+  --info: #60a5fa;
+
+  /* 题型色 */
+  --noul: #38bdf8;
+  --choice: #a78bfa;
+  --score: #fbbf24;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #06080f;
+  --bg-elev: #0b0f1a;
+  --panel: rgba(15, 20, 34, 0.72);
+  --panel-solid: #0f1422;
+  --panel-2: #141a2b;
+  --panel-3: #1a2136;
+  --hover: rgba(148, 163, 214, 0.07);
+  --line: rgba(148, 163, 214, 0.11);
+  --line-strong: rgba(148, 163, 214, 0.2);
+  --text: #e8ebf5;
+  --text-2: #a4acc4;
+  --text-3: #6c7491;
+  --text-4: #4a5170;
+  --track: rgba(148, 163, 214, 0.1);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.7), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 30px 80px -20px rgba(0, 0, 0, 0.8);
+  --glow: 0 0 0 1px rgba(124, 108, 255, 0.35), 0 8px 30px -6px rgba(99, 102, 241, 0.55);
+  --code-bg: #090c16;
+  --grid-line: rgba(148, 163, 214, 0.045);
+  --aurora-1: rgba(124, 92, 255, 0.22);
+  --aurora-2: rgba(34, 211, 238, 0.13);
+  --aurora-3: rgba(236, 72, 153, 0.07);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f5f6fb;
+  --bg-elev: #ffffff;
+  --panel: rgba(255, 255, 255, 0.82);
+  --panel-solid: #ffffff;
+  --panel-2: #f6f7fc;
+  --panel-3: #eef0f8;
+  --hover: rgba(79, 70, 229, 0.05);
+  --line: rgba(30, 41, 89, 0.09);
+  --line-strong: rgba(30, 41, 89, 0.17);
+  --text: #141a2e;
+  --text-2: #4b5472;
+  --text-3: #7d86a3;
+  --text-4: #a7aec5;
+  --track: rgba(30, 41, 89, 0.07);
+  --shadow-sm: 0 1px 2px rgba(20, 26, 46, 0.06);
+  --shadow: 0 12px 32px -14px rgba(30, 41, 89, 0.22), 0 2px 6px -2px rgba(30, 41, 89, 0.08);
+  --shadow-lg: 0 30px 80px -24px rgba(30, 41, 89, 0.3);
+  --glow: 0 0 0 1px rgba(99, 102, 241, 0.3), 0 8px 26px -8px rgba(99, 102, 241, 0.45);
+  --code-bg: #0e1222;
+  --grid-line: rgba(30, 41, 89, 0.05);
+  --aurora-1: rgba(124, 92, 255, 0.14);
+  --aurora-2: rgba(34, 211, 238, 0.12);
+  --aurora-3: rgba(236, 72, 153, 0.06);
+}

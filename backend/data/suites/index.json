@@ -1,0 +1,82 @@
+[
+  {
+    "slug": "support-triage",
+    "file": "support-triage.jsonl",
+    "name": "客服工单分诊",
+    "description": "客户留言 → 分派团队（5 选 1）+ 是否紧急。覆盖账单、技术、账号、物流、售前五类常见工单。",
+    "category": "operations",
+    "tags": ["choice", "noul", "意图识别"]
+  },
+  {
+    "slug": "review-sentiment",
+    "file": "review-sentiment.jsonl",
+    "name": "电商评论情感",
+    "description": "商品评论 → 三档情感评分 + 是否抱怨物流。包含褒贬参半、先抑后扬等易错样本。",
+    "category": "operations",
+    "tags": ["score", "noul", "情感分析"]
+  },
+  {
+    "slug": "tool-routing",
+    "file": "tool-routing.jsonl",
+    "name": "智能体工具路由",
+    "description": "用户请求 → 7 个工具里选一个 + 是否需要先追问。检验决策模型做智能体路由器的可行性。",
+    "category": "agent",
+    "tags": ["choice", "noul", "智能体"]
+  },
+  {
+    "slug": "guardrail",
+    "file": "guardrail.jsonl",
+    "name": "LLM 护栏：注入与隐私",
+    "description": "用户输入 → 是否提示注入/越狱 + 是否含个人敏感信息。包含间接注入、混淆注入和“讨论注入本身”的易混淆正常请求。",
+    "category": "safety",
+    "tags": ["noul", "安全"]
+  },
+  {
+    "slug": "nli-traps",
+    "file": "nli-traps.jsonl",
+    "name": "逻辑与否定陷阱",
+    "description": "前提 + 假设 → 蕴含 / 中立 / 矛盾。专门针对决策模型的已知短板：双重否定、量词、数字与日期、条件推理、过度推断。",
+    "category": "reasoning",
+    "tags": ["choice", "鲁棒性"]
+  },
+  {
+    "slug": "medical-triage",
+    "file": "medical-triage.jsonl",
+    "name": "医疗分诊",
+    "description": "症状描述 → 10 个科室选 1 + 是否需要立即急诊。仅用于模型测试，不构成医疗建议。",
+    "category": "domain",
+    "tags": ["choice", "noul", "医疗"]
+  },
+  {
+    "slug": "legal-charge",
+    "file": "legal-charge.jsonl",
+    "name": "罪名判断",
+    "description": "案件事实 → 8 个常见罪名选 1，包含盗窃/抢劫、诈骗/敲诈勒索等易混淆罪名对。",
+    "category": "domain",
+    "tags": ["choice", "法律"]
+  },
+  {
+    "slug": "finance-news",
+    "file": "finance-news.jsonl",
+    "name": "金融舆情",
+    "description": "公司新闻 → 利空/中性/利好评分 + 是否涉及监管处罚。",
+    "category": "domain",
+    "tags": ["score", "noul", "金融"]
+  },
+  {
+    "slug": "rag-relevance",
+    "file": "rag-relevance.jsonl",
+    "name": "RAG 段落相关性",
+    "description": "问题 + 检索段落 → 是否包含答案。干扰段落与问题同主题但不含答案，检验“相关 ≠ 可回答”。",
+    "category": "agent",
+    "tags": ["noul", "检索"]
+  },
+  {
+    "slug": "cj-bench-sample",
+    "file": "cj-bench-sample.jsonl",
+    "name": "CJ-Bench 分层抽样",
+    "description": "从 CJ-Bench 测试集按 领域 × 题型 分层抽样（每层 25 条，共 300 条），与官方口径一致，可快速复核模型整体水平。",
+    "category": "benchmark",
+    "tags": ["noul", "choice", "score", "基准"]
+  }
+]
