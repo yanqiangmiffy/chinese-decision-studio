@@ -63,6 +63,24 @@ async def test_invalid_question_is_422_with_readable_message(client):
     assert "criteria" in resp.json()["detail"]
 
 
+async def test_tournament_passes_large_choice_questions_through(client):
+    criteria = {f"intent_{i}": f"意图{i}" for i in range(41)}
+    resp = await client.post(
+        "/api/decide/tournament",
+        json={
+            "state": "用户提到 intent_7",
+            "question": {"type": "choice", "instructions": "哪个意图？", "criteria": criteria},
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["answer"]["choice"] == "intent_7" and body["candidates"] == 41
+    assert (body["group_size"], body["keep"]) == (16, 2)
+    assert client.fake.calls == ["tournament"]
+    bad = await client.post("/api/decide/tournament", json={"state": "x", "question": {}, "group_size": 27})
+    assert bad.status_code == 422
+
+
 async def test_import_and_run_evaluation_end_to_end(client):
     lines = [
         {

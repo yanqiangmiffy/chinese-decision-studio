@@ -87,6 +87,30 @@ class FakeDecision:
             "latency_ms": 7.0,
         }
 
+    async def tournament(self, body: dict[str, Any]) -> dict[str, Any]:
+        """不分组：把全部候选当成一题打分，只模拟返回格式。"""
+        self.calls.append("tournament")
+        criteria = body["question"]["criteria"]
+        content = text(body["state"])
+        probabilities = softmax([3.0 if (k in content or v in content) else 0.0 for k, v in criteria.items()])
+        best = max(range(len(criteria)), key=probabilities.__getitem__)
+        return {
+            "model": "fake",
+            "answer": {
+                "type": "choice",
+                "probabilities": dict(zip(criteria, probabilities, strict=True)),
+                "confidence": hmm_confidence(probabilities),
+                "choice": list(criteria)[best],
+            },
+            "candidates": len(criteria),
+            "group_size": body["group_size"],
+            "keep": body["keep"],
+            "rounds": [],
+            "usage": {"input_tokens": 10, "output_tokens": 0},
+            "decisions": 1,
+            "latency_ms": 6.0,
+        }
+
     async def compile(self, body: dict[str, Any]) -> dict[str, Any]:
         return {
             "prompt_version": "hmm-zh-v1",

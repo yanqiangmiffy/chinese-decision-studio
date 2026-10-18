@@ -192,6 +192,7 @@ elif intent["choice"] == "refund_status":
                 ["post", "/api/alpha/decisions", "同上，兼容 hmm 路由"],
                 ["post", "/v1/batch", "批量：多个请求跨请求合批，单个请求出错不影响其他"],
                 ["post", "/v1/compile", "只编译提示词并计数 token，不跑模型"],
+                ["post", "/v1/tournament", "类别更多的单选：分组淘汰后决赛（每组不超过 16 个，默认最多 1024 个候选）"],
                 ["get", "/v1/info", "检查点、GPU、引擎配置、运行统计、验证集指标"],
                 ["get", "/v1/training", "训练目录的实时进度（只读）"],
                 ["post", "/v1/admin/reload", "把训练目录最新的 best 快照下来并热加载（需要 X-Admin-Token）"],
@@ -209,7 +210,7 @@ elif intent["choice"] == "refund_status":
             <h3>批量接口</h3>
             <CodeBlock code={batch} />
             <p>
-              限制：单个请求最多 64 个问题；每个问题 2–26 个候选；单题输入不超过 16,384 tokens，超长输入<b>不会被截断</b>，直接返回 422。
+              限制：单个请求最多 64 个问题；单题 2–26 个候选（训练数据覆盖 2–16 个），类别更多时用 /v1/tournament；单题输入不超过 16,384 tokens，超长输入<b>不会被截断</b>，直接返回 422。
             </p>
             <h3>测试平台后端</h3>
             <p>

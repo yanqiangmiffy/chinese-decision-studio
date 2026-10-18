@@ -50,6 +50,19 @@ export interface DecideResult {
   llm: Record<string, LLMAnswer> | null;
 }
 
+export interface TournamentResult {
+  model: string;
+  /** 决赛（或候选数不超过每组上限时的单题）结果；probabilities 只覆盖进入这一题的候选 */
+  answer: Answer;
+  candidates: number;
+  group_size: number;
+  keep: number;
+  rounds: { groups: { probabilities: Record<string, number>; advanced: string[] }[] }[];
+  usage: { input_tokens: number; output_tokens: number };
+  decisions: number;
+  latency_ms: number;
+}
+
 export interface BatchResponse {
   model: string;
   results: (DecisionResponse | { error: string })[];

@@ -15,6 +15,7 @@ import {
 import type { ReactNode } from "react";
 import { useApp } from "../hooks/useApp";
 import { ms } from "../lib/format";
+import { SCENARIOS } from "../lib/scenarios";
 import { Link, usePath } from "../router";
 import { Logo, Tip } from "./ui";
 
@@ -24,7 +25,7 @@ const NAV: { group: string; items: { to: string; label: string; icon: ReactNode;
     items: [
       { to: "/", label: "总览", icon: <LayoutDashboard /> },
       { to: "/playground", label: "决策实验台", icon: <FlaskConical /> },
-      { to: "/scenarios", label: "场景库", icon: <Sparkles />, badge: "8" },
+      { to: "/scenarios", label: "场景库", icon: <Sparkles />, badge: String(SCENARIOS.length) },
     ],
   },
   {

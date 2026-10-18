@@ -70,6 +70,10 @@ class DecisionClient:
     async def compile(self, body: dict[str, Any]) -> dict[str, Any]:
         return await self._request("POST", "/v1/compile", json=body)
 
+    async def tournament(self, body: dict[str, Any]) -> dict[str, Any]:
+        """候选超过一题能放下的 choice 问题：服务端分组淘汰后决赛（需要支持 /v1/tournament 的决策服务）。"""
+        return await self._request("POST", "/v1/tournament", json=body)
+
     # ------------------------------------------------------------------ 状态
     async def info(self) -> dict[str, Any]:
         return await self._request("GET", "/v1/info")

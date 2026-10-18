@@ -25,6 +25,7 @@ import { useAsync, useInterval } from "../hooks/useAsync";
 import { BENCH_ACC, BENCH_ECE, CHECKPOINTS, DOMAIN_TYPE_ACC, DOMAINS, SOURCE_LABELS } from "../lib/benchmarks";
 import { LETTERS, ranked } from "../lib/decision";
 import { compact, int, ms, pct, timeAgo } from "../lib/format";
+import { SCENARIOS } from "../lib/scenarios";
 import { Link, navigate, useTitle } from "../router";
 import type { Answer, Overview as OverviewData, Question } from "../types";
 
@@ -207,7 +208,7 @@ export default function Overview() {
               打开实验台
             </Button>
             <Button size="lg" icon={<Sparkles />} onClick={() => navigate("/scenarios")}>
-              浏览 8 个场景
+              浏览 {SCENARIOS.length} 个场景
             </Button>
             <Button size="lg" variant="ghost" icon={<Target />} onClick={() => navigate("/eval")}>
               运行评测 <ArrowRight size={15} />

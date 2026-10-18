@@ -11,7 +11,14 @@ from loguru import logger
 from app.db.models import DecisionLog
 from app.db.session import get_sessionmaker
 from app.deps import get_decision_client, get_llm_service
-from app.schemas.api import BatchRequest, CompileRequest, DecideRequest, ExplainRequest, RobustnessRequest
+from app.schemas.api import (
+    BatchRequest,
+    CompileRequest,
+    DecideRequest,
+    ExplainRequest,
+    RobustnessRequest,
+    TournamentRequest,
+)
 from app.services import analysis_service
 from app.services.decision_client import DecisionClient, DecisionRejected, DecisionUnavailable
 from app.services.decision_math import options_for
@@ -88,6 +95,12 @@ async def decide(
 async def decide_batch(req: BatchRequest, client: DecisionClient = Depends(get_decision_client)) -> dict[str, Any]:
     """场景里的批量调用（评论 map-reduce、RAG 重排等）：不写历史，直接透传。"""
     return await client.batch(req.requests, debug=True)
+
+
+@router.post("/decide/tournament")
+async def tournament(req: TournamentRequest, client: DecisionClient = Depends(get_decision_client)) -> dict[str, Any]:
+    """类别超过 26 个的单选：直接透传给决策服务的 /v1/tournament，不写历史（返回格式和单题不同）。"""
+    return await client.tournament(req.model_dump())
 
 
 @router.post("/decide/compile")

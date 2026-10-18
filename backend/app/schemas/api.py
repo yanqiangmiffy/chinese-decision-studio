@@ -21,6 +21,14 @@ class BatchRequest(BaseModel):
     source: str = Field("scenario", max_length=32)
 
 
+class TournamentRequest(BaseModel):
+    state: Any
+    question: dict[str, Any] = Field(..., description="choice 问题，候选数可以超过 26")
+    group_size: int = Field(16, ge=3, le=26, description="每组最多几个候选；默认 16，即训练覆盖的最大候选数")
+    keep: int = Field(2, ge=1, le=13, description="每组前几名晋级，不能超过 group_size // 2")
+    seed: int = Field(0, ge=0, description="分组的随机种子")
+
+
 class CompileRequest(BaseModel):
     state: Any
     questions: dict[str, dict[str, Any]] = Field(..., min_length=1, max_length=64)

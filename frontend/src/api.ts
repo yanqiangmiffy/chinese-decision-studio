@@ -16,6 +16,7 @@ import type {
   RunSummary,
   State,
   Suite,
+  TournamentResult,
   Training,
 } from "./types";
 
@@ -116,6 +117,10 @@ export const api = {
   ) => post<DecideResult>("/api/decide", body, signal),
   batch: (requests: DecisionRequest[], signal?: AbortSignal) =>
     post<BatchResponse>("/api/decide/batch", { requests }, signal),
+  tournament: (
+    body: { state: State; question: Question; group_size?: number; keep?: number; seed?: number },
+    signal?: AbortSignal,
+  ) => post<TournamentResult>("/api/decide/tournament", body, signal),
   compile: (body: DecisionRequest) =>
     post<{
       prompt_version: string;

@@ -15,6 +15,7 @@ const VIEWS: Record<string, ReturnType<typeof lazy>> = {
   agent: lazy(() => import("./scenarios/AgentRouter")),
   reviews: lazy(() => import("./scenarios/ReviewInsights")),
   judge: lazy(() => import("./scenarios/LLMJudge")),
+  intents: lazy(() => import("./scenarios/IntentTournament")),
 };
 
 export default function ScenarioPage({ id }: { id: string }) {
