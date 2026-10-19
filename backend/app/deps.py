@@ -4,14 +4,14 @@ from functools import lru_cache
 
 from app.config import get_settings
 from app.db.session import get_sessionmaker
-from app.services.decision_client import DecisionClient
+from app.services.decision_client import DecisionClient, create_decision_client
 from app.services.eval_service import EvalRunner
 from app.services.llm_service import LLMService
 
 
 @lru_cache
 def get_decision_client() -> DecisionClient:
-    return DecisionClient(get_settings())
+    return create_decision_client(get_settings())  # type: ignore[return-value]
 
 
 @lru_cache

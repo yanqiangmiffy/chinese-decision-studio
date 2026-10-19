@@ -142,8 +142,23 @@ docker compose up -d --build
 | --- | --- | --- | --- |
 | GPU | `scripts/serve_gpu.py` | BF16：[Hugging Face](https://huggingface.co/quincyqiang/chinese-decision-0.8b) · [ModelScope](https://modelscope.cn/models/quincyqiang/chinese-decision-0.8b) | 动态批处理、训练进度、检查点热更新，部署见 [deploy/gpu](https://github.com/yanqiangmiffy/chinese-decision/tree/main/deploy/gpu) |
 | CPU | `scripts/serve.py --backend gguf` | GGUF：[Hugging Face](https://huggingface.co/quincyqiang/chinese-decision-0.8b-gguf) · [ModelScope](https://modelscope.cn/models/quincyqiang/chinese-decision-0.8b-gguf) | Q8_0 GGUF + llama.cpp，不需要 GPU，逐题前向，部署见 [docs/CPU.md](https://github.com/yanqiangmiffy/chinese-decision/blob/main/docs/CPU.md) |
+| 远端 | Bamboo Relay · StartLux-Decision 27B AutoThink | [Hugging Face](https://huggingface.co/startlux-models/StartLux-Decision-v1.1-27B-AutoThink) | 免部署；只提供 `/v1/systemone`，平台自动扇出 batch、客户端分组 tournament |
 
 接 CPU 服务时单批评测耗时更长，建议在 `.env` 里设 `EVAL_BATCH_SIZE=16`，避免单批超过 `DECISION_TIMEOUT`（默认 120 秒）；CPU 服务没有热更新，`DECISION_ADMIN_TOKEN` 留空。
+
+接 Bamboo Relay / StartLux 时，在 `.env` 里配置：
+
+```bash
+DECISION_BASE_URL=https://api.bamboonode.dev
+DECISION_API_STYLE=startlux
+DECISION_API_KEY=你的_Bamboo_API_key
+DECISION_MODEL=startlux-decision-27b-autothink
+DECISION_THINK_MODE=auto
+DECISION_CONCURRENCY=4
+DECISION_TIMEOUT=180
+```
+
+远端只支持单题 `/v1/systemone`：`/v1/batch` 由平台按 `DECISION_CONCURRENCY` 并发扇出，`/v1/compile` 用本地提示词近似展示，`/v1/tournament` 由平台在客户端分组淘汰。`.env` 已被 `.gitignore` 忽略，不要提交 API key。
 
 ### 本地开发
 
@@ -157,6 +172,52 @@ uvicorn app.main:app --reload --port 8090
 cd frontend                                    # 另开一个终端
 npm install && npm run dev                     # http://localhost:5173，/api 自动代理到 8090
 ```
+
+## 🔌 MCP 与 Skills
+
+平台内置一个 MCP 服务，挂在 `/api/mcp/`，和现有 API 共用进程与 nginx 反代。
+
+| 入口 | 地址 |
+| --- | --- |
+| MCP（Streamable HTTP） | http://localhost:8080/api/mcp/ |
+| 本地后端直连 | http://localhost:8090/api/mcp/ |
+
+项目根目录的 `.mcp.json` 已经配好，Claude Code 打开仓库即可发现；其他 MCP 客户端填同样的 URL。设置了 `MCP_AUTH_TOKEN` 时，在客户端配置里加：
+
+```json
+"headers": {"Authorization": "Bearer <token>"}
+```
+
+工具按能力分组：
+
+- 状态：`studio_health`、`get_overview`、`get_model_info`
+- 决策：`decide`、`decide_batch`、`decide_tournament`、`compile_prompt`
+- 分析：`explain_decision`、`test_robustness`
+- 评测集：`list_suites`、`get_suite`、`create_suite`、`add_suite_cases`、`import_suite`
+- 评测运行：`list_evaluations`、`start_evaluation`、`get_evaluation`、`cancel_evaluation`
+- 历史：`list_recent_decisions`、`get_decision`、`label_decision`、`add_decision_to_suite`
+- 压测：`run_benchmark`（默认小规模；会占用共享推理资源）
+
+### Skills
+
+`.claude/skills/decision-studio/` 是提交到仓库的父技能，负责入口和路由；三个子模块按需加载：
+
+| 文件 | 内容 |
+| --- | --- |
+| `SKILL.md` | 连接方式、标准流程、护栏、路由表 |
+| `references/tools.md` | MCP 工具签名、返回结构、错误处理、压测提示 |
+| `references/question-design.md` | 题型选择、问法、候选项、阈值、已知短板 |
+| `references/evaluation.md` | 评测集、评测运行、ACC/ECE、复核预算、对照大模型 |
+
+父技能只保留索引和公共约束，子模块按需读取。技能加载器只在 `skills/` 下扫描一层，嵌套的 `group/skill/SKILL.md` 不会被发现，所以没有把三个子技能直接嵌套；其他 agent 可以直接读这些 Markdown。
+
+### 配置与安全
+
+- `MCP_ENABLED=true` 开关 MCP；关闭后 `/api/mcp/` 不挂载。
+- `MCP_ALLOWED_HOSTS` 默认只允许本机；部署到域名时改成 `studio.example.com,studio.example.com:*`。`"*"` 会关闭 Host/Origin 校验，只建议在反向代理已经校验 Host 时使用。
+- `MCP_ALLOWED_ORIGINS` 只有浏览器里的 MCP 客户端需要。
+- `MCP_AUTH_TOKEN` 留空不鉴权；设置后客户端要带 `Authorization: Bearer <token>`。**它只保护 `/api/mcp/`，平台其他 `/api` 仍然没有鉴权。**
+- 平台本身没有登录系统；对外暴露前请在反向代理层加统一鉴权，或只在内网开放。
 
 ## 🏗 架构
 
@@ -214,11 +275,14 @@ CJ-Bench 的许可按数据来源分别适用（部分为非商业许可），�
 
 ```text
 decision-studio/
+├── .claude/skills/decision-studio/  # 父技能 + references（工具、问法、评测）
+├── .mcp.json                        # 项目级 MCP 配置：http://localhost:8080/api/mcp/
 ├── backend/
 │   ├── app/
 │   │   ├── routers/           # health · decide · history · suites · runs · bench：只做协议转换
 │   │   ├── services/          # 决策客户端、对照大模型、指标、评测运行、证据归因与鲁棒性、压测、导入
 │   │   ├── db/                # SQLAlchemy 2.0 异步模型；表结构变更走 migrations/
+│   │   ├── mcp_server.py      # MCP 工具：对现有 /api 的薄封装，挂在 /api/mcp/
 │   │   └── scripts/seed.py    # 导入内置评测集（幂等）
 │   ├── data/suites/           # 内置评测集（build.py 生成）
 │   └── tests/                 # 不依赖外部服务：假决策服务 + SQLite
@@ -233,7 +297,7 @@ decision-studio/
 ## 🧪 测试
 
 ```bash
-cd backend && python -m pytest && ruff check .     # 24 个测试，不需要任何外部服务
+cd backend && python -m pytest && ruff check .     # 36 个测试，不需要任何外部服务
 cd frontend && npm run build && npm run lint        # 类型检查 + 构建
 python scripts/screenshots.py --run <评测运行 id>     # 重新生成 README 截图（需要平台在运行）
 ```

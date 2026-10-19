@@ -1,7 +1,7 @@
 """FastAPI 入口：生命周期、CORS、异常映射、路由注册。"""
 
 import asyncio
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
+from app import mcp_server
 from app.config import get_settings
 from app.db.session import dispose_engine
 from app.deps import get_decision_client, get_eval_runner, get_llm_service
@@ -19,6 +20,7 @@ from app.services.decision_client import DecisionRejected, DecisionUnavailable
 
 settings = get_settings()
 setup_logging(settings.LOG_LEVEL)
+mcp_asgi = mcp_server.build_http_app(settings) if settings.MCP_ENABLED else None
 
 
 async def _warmup() -> None:
@@ -40,7 +42,10 @@ async def lifespan(_: FastAPI):
     except Exception:  # noqa: BLE001
         logger.exception("恢复评测运行状态失败（数据库可能还没迁移）")
     task = asyncio.create_task(_warmup())
-    yield
+    async with AsyncExitStack() as stack:
+        if mcp_asgi is not None:
+            await stack.enter_async_context(mcp_server.mcp.session_manager.run())
+        yield
     task.cancel()
     await runner.shutdown()
     await get_decision_client().close()
@@ -79,6 +84,10 @@ async def _rejected(_: Request, exc: DecisionRejected) -> JSONResponse:
 
 for module in (health, decide, history, suites, runs, bench):
     app.include_router(module.router)
+
+# MCP：和平台共用 /api 前缀，nginx 不需要额外配置；lifespan 里启动 session manager
+if mcp_asgi is not None:
+    app.mount("/api/mcp", mcp_server.MCPAuthMiddleware(mcp_asgi, settings.MCP_AUTH_TOKEN))
 
 
 # 非容器部署时可以让后端直接托管前端构建产物（STATIC_DIR=../frontend/dist）；容器里由 nginx 托管

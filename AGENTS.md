@@ -9,10 +9,13 @@ Chinese Decision 决策模型的测试平台：FastAPI + React + SSE + PostgreSQ
 ## 目录地图
 
 ```text
+.claude/skills/decision-studio/  # MCP 配套技能：父 SKILL.md + references（工具、问法、评测）
+.mcp.json                        # 项目级 MCP 配置：http://localhost:8080/api/mcp/
 backend/app/
-├── main.py              # 入口：生命周期、异常映射、路由注册；Swagger 在 /api/docs
+├── main.py              # 入口：生命周期、异常映射、路由注册、MCP 挂载；Swagger 在 /api/docs
 ├── config.py            # 所有配置（pydantic-settings），都能被环境变量覆盖
 ├── deps.py              # 服务装配：懒加载单例，路由里用 Depends 注入
+├── mcp_server.py        # MCP 工具：对现有 /api 的薄封装，挂在 /api/mcp/，不复制业务逻辑
 ├── routers/             # 只做协议转换：校验入参、包装 SSE
 ├── services/
 │   ├── decision_client.py   # 唯一调用决策服务的地方
@@ -53,10 +56,13 @@ python scripts/screenshots.py --run <id>     # 重新生成 README 截图
 7. **场景里的问法要在真实模型上验证过**：改问法之前先用批量接口对比几种写法（见 README“实测发现”），把结论写进代码注释。
 8. GPU 是共用的：压测、批量评测不要无节制地加大并发和 token 预算。
 9. 不要提交 `.env`、`.admin-token` 和 CJ-Bench 抽样文件。
+10. **MCP 工具只做协议转换**：通过 `ASGITransport` 调现有 `/api`，不要在 `mcp_server.py` 里复制业务逻辑；新增/修改工具时同步更新 `.claude/skills/decision-studio/references/tools.md` 和 README 的工具清单。
+11. **决策服务有两种协议**：`DECISION_API_STYLE=chinese-decision|startlux`。新增/修改 `DecisionClient` 方法时，`StartLuxDecisionClient` 也要实现同名方法；远端没有 batch/compile/tournament 时在适配器里补齐（batch 扇出、compile 本地近似、tournament 客户端分组）。
 
 ## 完成的定义
 
 - `cd backend && python -m pytest` 全部通过，`ruff check .` 无报错；
 - 改了前端：`cd frontend && npm run build` 通过；
 - 改了决策服务：重新部署后 `curl $DECISION_BASE_URL/health` 正常，并在实验台跑一次；
+- 改了 MCP：`pytest` 通过，并用 MCP 客户端确认 `tools/list` 和至少一个工具调用正常；
 - 改了行为：README / 文档页同步更新。
