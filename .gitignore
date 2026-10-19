@@ -21,6 +21,7 @@ dist/
 # 本地产物
 tmp/
 volumes/
+.omp/
 
 # CJ-Bench 抽样：部分数据来源为非商业许可，只用于内部测试，不随仓库发布（用 scripts/sample_cj_bench.py 生成）
 backend/data/suites/cj-bench-sample.jsonl
