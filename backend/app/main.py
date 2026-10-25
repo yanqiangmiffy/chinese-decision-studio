@@ -12,10 +12,11 @@ from loguru import logger
 
 from app.config import get_settings
 from app.db.session import dispose_engine
-from app.deps import get_decision_client, get_eval_runner, get_llm_service
+from app.deps import get_decision_client, get_eval_runner, get_extraction_client, get_llm_service
 from app.log import setup_logging
-from app.routers import bench, decide, health, history, runs, suites
+from app.routers import bench, decide, extract, health, history, runs, suites
 from app.services.decision_client import DecisionRejected, DecisionUnavailable
+from app.services.extraction_client import ExtractionUnavailable
 
 settings = get_settings()
 setup_logging(settings.LOG_LEVEL)
@@ -44,6 +45,7 @@ async def lifespan(_: FastAPI):
     task.cancel()
     await runner.shutdown()
     await get_decision_client().close()
+    await get_extraction_client().close()
     await get_llm_service().close()
     await dispose_engine()
 
@@ -72,12 +74,19 @@ async def _unavailable(_: Request, __: DecisionUnavailable) -> JSONResponse:
     return JSONResponse({"detail": "决策服务暂时不可用，请检查服务状态后重试"}, status_code=503)
 
 
+@app.exception_handler(ExtractionUnavailable)
+async def _extraction_unavailable(_: Request, __: ExtractionUnavailable) -> JSONResponse:
+    return JSONResponse(
+        {"detail": "抽取服务暂时不可用，请检查统一模型服务（EXTRACTION_BASE_URL）后重试"}, status_code=503
+    )
+
+
 @app.exception_handler(DecisionRejected)
 async def _rejected(_: Request, exc: DecisionRejected) -> JSONResponse:
     return JSONResponse({"detail": str(exc)}, status_code=422)
 
 
-for module in (health, decide, history, suites, runs, bench):
+for module in (health, decide, extract, history, suites, runs, bench):
     app.include_router(module.router)
 
 

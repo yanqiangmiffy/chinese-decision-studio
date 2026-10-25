@@ -6,12 +6,18 @@ from app.config import get_settings
 from app.db.session import get_sessionmaker
 from app.services.decision_client import DecisionClient
 from app.services.eval_service import EvalRunner
+from app.services.extraction_client import ExtractionClient
 from app.services.llm_service import LLMService
 
 
 @lru_cache
 def get_decision_client() -> DecisionClient:
     return DecisionClient(get_settings())
+
+
+@lru_cache
+def get_extraction_client() -> ExtractionClient:
+    return ExtractionClient(get_settings())
 
 
 @lru_cache

@@ -21,6 +21,7 @@ const SECTIONS = [
   ["quick", "快速开始"],
   ["types", "三种题型"],
   ["api", "接口参考"],
+  ["extract", "信息抽取"],
   ["patterns", "设计模式"],
   ["pitfalls", "已知短板与对策"],
   ["deploy", "部署与运维"],
@@ -49,10 +50,44 @@ const PITFALLS: [string, string, string][] = [
   ["概率校准", "当前检查点未做温度校准：有的任务偏保守（T* < 1），有的偏自信。", "用评测报告里的温度诊断和复核预算，在你自己的数据上定阈值。"],
 ];
 
+// 类型怎么写、能指望什么：都是在统一模型 v3（0.8B）上对场景库里的案例实测的结果
+const EXTRACT_TIPS: [string, string, string][] = [
+  ["训练时的说明", "召回最高。地址要素用训练里的说明能抽出 7 个，只写类型名只有 3 个。", "从实验台“换成训练时的类型组”开始改：名称保持原样，说明按自己的业务微调。"],
+  ["只写类型名", "召回最低，相近的类型分不开（如各级地名、机构和其它组织）。", "至少写一句话的定义，包括边界（什么不算）。"],
+  ["自定义新类型", "训练里没出现过的类型基本抽不出来，或者很不稳。", "上线前一定在自己的数据上测；能用训练过的类型表达就不要新造。"],
+  ["关系抽取", "主体固定，类型名写成“{主体}的{关系}”，说明写客体类型，跨度就是客体。影视、学校、综艺、行政区、图书、歌曲的关系基本抽全。", "主体由你提供（词典或上一步的 NER）；作词 / 作曲、祖籍、官方语言、饰演这类关系会漏。"],
+  ["事件抽取", "先用是/否问题判断事件类型，再用“触发词 + 角色”抽取。事件类型稳定，触发词和公司、日期、金额类论元基本正确。", "发起方 / 被收购方这类带方向的角色会串，用规则或人工复核。"],
+  ["意图与槽位", "没有训练过槽位填充，不支持。", "意图用决策的 choice 题，槽位用抽取，分开做。"],
+  ["弱项领域", "社交媒体、细粒度新闻类型（新华社会被当成“其它组织机构”）、法律文书里的金额和对象、百科里的人物子类型。", "这些领域在自己的数据上先测一遍，再决定是否上线。"],
+];
+
 export default function Docs() {
   useTitle("接入文档");
   const { health } = useApp();
   const base = health?.decision.base_url ?? "http://<决策服务>:8003";
+  const exBase = health?.extraction?.base_url ?? "http://<统一模型服务>:8011";
+  const exCurl = `curl ${exBase}/v1/extract \\
+  -H 'Content-Type: application/json' \\
+  -d '{
+    "text": "收货地址：浙江省杭州市西湖区文三路90号东部软件园科技大厦A座1203室，联系人王小明。",
+    "types": {
+      "省份": "省级行政区划，如省、自治区、直辖市、特别行政区",
+      "城市": "地级行政区划，如地级市、地区、自治州等",
+      "区县": "县级行政区划，如市辖区、县级市、县等",
+      "道路": "有正式名称的道路，包括国道、高架、街、巷等"
+    },
+    "threshold": 0.3
+  }'`;
+  const exResponse = `{
+  "task": "extraction",
+  "model": "v3",
+  "text": "收货地址：浙江省杭州市西湖区文三路90号……",
+  "entities": [
+    {"text": "浙江省", "label": "省份", "start": 5, "end": 8, "score": 1.0},
+    {"text": "杭州市", "label": "城市", "start": 8, "end": 11, "score": 0.96}
+  ],
+  "latency_ms": 109.0
+}                                       // start / end 是字符位置，左闭右开；score 是模型给这个实体的概率`;
   const curl = `curl ${base}/v1/systemone \\
   -H 'Content-Type: application/json' \\
   -d '{
@@ -220,6 +255,59 @@ elif intent["choice"] == "refund_status":
               </a>
               （Swagger）：实验台、证据归因、鲁棒性测试（SSE）、评测集导入、评测运行（SSE 进度）、压测（SSE）和历史记录。
             </p>
+          </section>
+
+          <section id="extract" className="docs-section">
+            <h2>信息抽取</h2>
+            <p>
+              统一模型服务（chinese-decision 仓库的 <code>scripts/serve_unified.py</code>）用<b>同一份权重</b>做两件事，按请求的形状选择任务：带 <code>questions</code> 走决策，带 <code>types</code> 走抽取。
+              抽取同样是一次前向、不生成文本：模型给文本里每个字符判断属于哪个类型，再合成带位置和概率的实体。在平台里配置 <code>EXTRACTION_BASE_URL</code> 后，实验台出现“抽取”模式，场景库多出三个抽取场景。
+            </p>
+            <div className="col" style={{ gap: 8 }}>
+              {[
+                ["post", "/v1/extract", "文本 + 类型表（名称 → 说明）→ 带位置和概率的实体；threshold 可选"],
+                ["post", "/v1/decide", "决策接口，格式与决策服务相同；“先判断、再抽取”的第一步用它"],
+                ["get", "/v1/info", "can_extract、GPU、运行统计"],
+                ["post", "/api/extract", "平台后端的透传接口（实验台和场景库用它；不写历史记录）"],
+                ["post", "/api/extract/decide", "平台后端的统一模型决策接口"],
+              ].map(([m, path, desc]) => (
+                <div key={path} className="endpoint">
+                  <span className={`method ${m}`}>{m.toUpperCase()}</span>
+                  <span>{path}</span>
+                  <span className="faint" style={{ fontFamily: "var(--font)", fontSize: 12.5 }}>
+                    {desc}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <CodeBlock code={exCurl} />
+            <h3>响应</h3>
+            <CodeBlock lang="json" code={exResponse} />
+            <h3>类型怎么写</h3>
+            <p>
+              每个类型是“名称 + 说明”。<b>说明比模型更重要</b>：模型训练时见到的是带说明的类型（例如“地名或地缘政治实体：文本中独立出现的具体地理位置……”），换成只有类型名的写法，召回会明显下降。
+              限制：文本最长 2000 字、一次最多 40 个类型、单个说明最长 600 字。
+            </p>
+            <table className="doc-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 110 }}>写法</th>
+                  <th>实测表现</th>
+                  <th>建议</th>
+                </tr>
+              </thead>
+              <tbody>
+                {EXTRACT_TIPS.map(([a, b, c]) => (
+                  <tr key={a}>
+                    <td>
+                      <b>{a}</b>
+                    </td>
+                    <td className="muted">{b}</td>
+                    <td>{c}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </section>
 
           <section id="patterns" className="docs-section">

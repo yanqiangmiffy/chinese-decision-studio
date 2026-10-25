@@ -6,6 +6,8 @@ import type {
   DecideResult,
   DecisionRequest,
   ExplainResult,
+  ExtractDecideResult,
+  ExtractResult,
   Health,
   HistoryItem,
   ModelInfo,
@@ -121,6 +123,12 @@ export const api = {
     body: { state: State; question: Question; group_size?: number; keep?: number; seed?: number },
     signal?: AbortSignal,
   ) => post<TournamentResult>("/api/decide/tournament", body, signal),
+  /** 抽取：types 是 {类型名: 说明}，说明越接近训练写法越稳 */
+  extract: (body: { text: string; types: Record<string, string>; threshold?: number }, signal?: AbortSignal) =>
+    post<ExtractResult>("/api/extract", body, signal),
+  /** 用统一模型回答决策问题：串联场景里“先判断、再抽取”的第一步 */
+  extractDecide: (body: { state: State; questions: Record<string, Question> }, signal?: AbortSignal) =>
+    post<ExtractDecideResult>("/api/extract/decide", body, signal),
   compile: (body: DecisionRequest) =>
     post<{
       prompt_version: string;

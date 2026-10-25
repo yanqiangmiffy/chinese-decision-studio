@@ -15,7 +15,7 @@ from httpx import ASGITransport, AsyncClient  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.db.models import Base  # noqa: E402
 from app.db.session import get_sessionmaker  # noqa: E402
-from app.deps import get_decision_client, get_eval_runner, get_llm_service  # noqa: E402
+from app.deps import get_decision_client, get_eval_runner, get_extraction_client, get_llm_service  # noqa: E402
 from app.main import app  # noqa: E402
 from app.services.decision_client import DecisionRejected  # noqa: E402
 from app.services.decision_math import hmm_confidence, options_for, softmax, text  # noqa: E402
@@ -138,6 +138,35 @@ class FakeDecision:
         return None
 
 
+class FakeExtraction(FakeDecision):
+    """假的统一模型服务：文本里出现类型名，就把那一处当作该类型的实体。"""
+
+    base_url = "http://fake-extraction"
+    configured = True
+
+    async def extract(self, body: dict[str, Any]) -> dict[str, Any]:
+        self.calls.append("extract")
+        text_ = body["text"]
+        entities = []
+        for name in body["types"]:
+            start = text_.find(name)
+            if start >= 0:
+                entities.append({"text": name, "label": name, "start": start, "end": start + len(name), "score": 0.9})
+        return {"task": "extraction", "model": "fake-unified", "text": text_, "entities": entities, "latency_ms": 4.0}
+
+    async def ask(self, body: dict[str, Any]) -> dict[str, Any]:
+        self.calls.append("ask")
+        return self._response(body) | {"task": "decision"}
+
+
+class UnconfiguredExtraction(FakeExtraction):
+    base_url = ""
+    configured = False
+
+    async def health(self, ttl: float = 5.0) -> dict[str, Any] | None:
+        return None
+
+
 class FakeLLM:
     model = "fake-llm"
     configured = False
@@ -161,13 +190,16 @@ async def client():
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     fake = FakeDecision()
+    unified = FakeExtraction()
     llm = FakeLLM()
     runner = EvalRunner(fake, llm, get_sessionmaker(), get_settings())  # type: ignore[arg-type]
     app.dependency_overrides[get_decision_client] = lambda: fake
     app.dependency_overrides[get_llm_service] = lambda: llm
+    app.dependency_overrides[get_extraction_client] = lambda: unified
     app.dependency_overrides[get_eval_runner] = lambda: runner
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as http:
         http.fake = fake  # type: ignore[attr-defined]
+        http.unified = unified  # type: ignore[attr-defined]
         http.runner = runner  # type: ignore[attr-defined]
         yield http
     app.dependency_overrides.clear()

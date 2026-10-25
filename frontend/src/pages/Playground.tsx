@@ -42,7 +42,9 @@ import { useStored } from "../hooks/useAsync";
 import { emptyQuestion, optionsOf, rescale, uniqueName, validateQuestion } from "../lib/decision";
 import { ms, pct } from "../lib/format";
 import { handoff, PRESET_CATEGORIES, PRESETS, takeHandoff, type Preset } from "../lib/presets";
+import { hasExtractHandoff } from "../lib/extractionCases";
 import { navigate, useTitle } from "../router";
+import ExtractionLab, { ModeSwitch, type PlaygroundMode } from "./ExtractionLab";
 import type { DecideResult, DecisionRequest, ExplainResult, Kind, Question, State } from "../types";
 
 interface Draft {
@@ -74,6 +76,11 @@ function snippets(base: string, req: DecisionRequest) {
 
 export default function Playground() {
   useTitle("决策实验台");
+  // 决策 / 抽取两种模式共用实验台；从场景库“在实验台打开”抽取案例时直接进入抽取模式
+  const [mode, setMode] = useStored<PlaygroundMode>("ds-playground-mode", "decide");
+  useEffect(() => {
+    if (hasExtractHandoff()) setMode("extract");
+  }, [setMode]);
   const { health, toast } = useApp();
   const [draft, setDraft] = useStored<Draft>("ds-playground", DEFAULT);
   const [result, setResult] = useState<DecideResult | null>(null);
@@ -199,6 +206,8 @@ export default function Playground() {
 
   const base = health?.decision.base_url ?? "http://<决策服务>:8003";
   const code = request ? snippets(base, request) : null;
+  const modeSwitch = <ModeSwitch value={mode} onChange={setMode} />;
+  if (mode === "extract") return <ExtractionLab modeSwitch={modeSwitch} />;
   const answers = result?.response.answers ?? {};
   const decisionMs = result?.response.latency_ms;
 
@@ -215,6 +224,7 @@ export default function Playground() {
         desc="写下上下文和几个问题，模型直接返回每个候选项的概率——不生成文本、零输出 token。多个问题在一次请求里并行评估。"
         actions={
           <>
+            {modeSwitch}
             <Button icon={<Library />} onClick={() => setPresetOpen(true)}>
               示例库
             </Button>

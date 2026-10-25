@@ -21,13 +21,16 @@ class DecisionRejected(ValueError):
 
 
 class DecisionClient:
-    def __init__(self, settings: Settings):
-        self.base_url = settings.DECISION_BASE_URL.rstrip("/")
+    # 连不上时抛出的异常类型：子类可以换成自己的，路由层据此给出不同的提示
+    _unavailable: type[DecisionUnavailable] = DecisionUnavailable
+
+    def __init__(self, settings: Settings, base_url: str | None = None, timeout: float | None = None):
+        self.base_url = (settings.DECISION_BASE_URL if base_url is None else base_url).rstrip("/")
         self.admin_token = settings.DECISION_ADMIN_TOKEN
         # 压测时并发可能上百，连接池要放大；keepalive 复用连接，延迟里不含握手
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
-            timeout=httpx.Timeout(settings.DECISION_TIMEOUT, connect=5.0),
+            timeout=httpx.Timeout(settings.DECISION_TIMEOUT if timeout is None else timeout, connect=5.0),
             limits=httpx.Limits(max_connections=512, max_keepalive_connections=256),
         )
         self._health: tuple[float, dict[str, Any] | None] = (0.0, None)
@@ -44,8 +47,8 @@ class DecisionClient:
             resp = await self._client.request(method, path, **kwargs)
         except httpx.HTTPError as exc:
             logger.warning("决策服务请求失败 {} {}：{!r}", method, path, exc)
-            raise DecisionUnavailable(str(exc)) from exc
-        if resp.status_code == 422:
+            raise self._unavailable(str(exc)) from exc
+        if resp.status_code in (400, 422):
             detail = (
                 resp.json().get("detail", "请求不合法")
                 if resp.headers.get("content-type", "").startswith("application/json")
@@ -56,7 +59,7 @@ class DecisionClient:
             logger.warning("决策服务返回 {} {} {}：{}", resp.status_code, method, path, resp.text[:300])
             if resp.status_code in (403, 409):
                 raise DecisionRejected(resp.json().get("detail", "操作被拒绝"))
-            raise DecisionUnavailable(f"HTTP {resp.status_code}")
+            raise self._unavailable(f"HTTP {resp.status_code}")
         return resp.json()
 
     # ------------------------------------------------------------------ 推理

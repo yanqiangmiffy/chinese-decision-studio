@@ -11,6 +11,7 @@ import "./styles/decision.css";
 import "./styles/pages.css";
 import "./styles/scenarios.css";
 import "./styles/workbench.css";
+import "./styles/extraction.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

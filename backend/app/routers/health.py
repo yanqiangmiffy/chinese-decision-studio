@@ -11,8 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.db.models import BenchRun, Case, DecisionLog, Run, Suite
 from app.db.session import get_db, ping
-from app.deps import get_decision_client, get_llm_service
+from app.deps import get_decision_client, get_extraction_client, get_llm_service
 from app.services.decision_client import DecisionClient, DecisionRejected, DecisionUnavailable
+from app.services.extraction_client import ExtractionClient
 from app.services.llm_service import LLMService
 
 router = APIRouter(prefix="/api", tags=["health"])
@@ -25,11 +26,19 @@ async def _optional(coro) -> Any:
         return None
 
 
+async def _none() -> None:
+    return None
+
+
 @router.get("/health")
 async def health(
-    client: DecisionClient = Depends(get_decision_client), llm: LLMService = Depends(get_llm_service)
+    client: DecisionClient = Depends(get_decision_client),
+    llm: LLMService = Depends(get_llm_service),
+    extraction: ExtractionClient = Depends(get_extraction_client),
 ) -> dict[str, Any]:
-    db_ok, decision, llm_ok = await asyncio.gather(ping(), client.health(), llm.available())
+    db_ok, decision, llm_ok, unified = await asyncio.gather(
+        ping(), client.health(), llm.available(), extraction.health() if extraction.configured else _none()
+    )
     return {
         "status": "ok" if db_ok else "degraded",
         "app": get_settings().APP_NAME,
@@ -37,6 +46,12 @@ async def health(
         "database": db_ok,
         "decision": {"base_url": client.base_url, "online": decision is not None, **(decision or {})},
         "llm": {"configured": llm.configured, "online": llm_ok, "model": llm.model if llm.configured else None},
+        "extraction": {
+            "configured": extraction.configured,
+            "base_url": extraction.base_url or None,
+            "online": unified is not None,
+            "model": (unified or {}).get("model"),
+        },
         "can_reload": client.can_reload,
     }
 

@@ -2,7 +2,7 @@
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 TestName = Literal["order", "naming", "distractor", "injection", "paraphrase"]
 
@@ -27,6 +27,27 @@ class TournamentRequest(BaseModel):
     group_size: int = Field(16, ge=3, le=26, description="每组最多几个候选；默认 16，即训练覆盖的最大候选数")
     keep: int = Field(2, ge=1, le=13, description="每组前几名晋级，不能超过 group_size // 2")
     seed: int = Field(0, ge=0, description="分组的随机种子")
+
+
+class ExtractRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=2000)
+    types: dict[str, str] = Field(..., min_length=1, max_length=40, description="类型名 → 说明（说明可以为空串）")
+    threshold: float = Field(0.0, ge=0.0, le=1.0, description="实体概率低于它就丢弃")
+
+    @field_validator("types")
+    @classmethod
+    def _check_types(cls, types: dict[str, str]) -> dict[str, str]:
+        for name, description in types.items():
+            if not name.strip() or len(name) > 40:
+                raise ValueError("类型名不能为空，且不超过 40 个字")
+            if len(description) > 600:
+                raise ValueError(f"类型“{name}”的说明超过 600 个字")
+        return types
+
+
+class UnifiedDecideRequest(BaseModel):
+    state: Any
+    questions: dict[str, dict[str, Any]] = Field(..., min_length=1, max_length=64)
 
 
 class CompileRequest(BaseModel):

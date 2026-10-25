@@ -1,4 +1,4 @@
-import { ArrowUpRight, Bot, FileSearch, Inbox, LayoutGrid, MessagesSquare, Scale, ShieldAlert, Sparkles, Trophy, Users } from "lucide-react";
+import { ArrowUpRight, Bot, FileSearch, Inbox, LayoutGrid, MessagesSquare, ScanSearch, Scale, Share2, ShieldAlert, Sparkles, Trophy, Users, Workflow } from "lucide-react";
 import type { ReactNode } from "react";
 import { PageHead } from "../components/ui";
 import { SCENARIOS } from "../lib/scenarios";
@@ -14,6 +14,9 @@ export const SCENARIO_ICONS: Record<string, ReactNode> = {
   LayoutGrid: <LayoutGrid />,
   Scale: <Scale />,
   Trophy: <Trophy />,
+  ScanSearch: <ScanSearch />,
+  Workflow: <Workflow />,
+  Share2: <Share2 />,
 };
 
 export default function Scenarios() {
@@ -28,7 +31,7 @@ export default function Scenarios() {
             决策模型能做什么？<span className="grad-text">直接上手试</span>
           </>
         }
-        desc={`${SCENARIOS.length} 个可交互的小应用，覆盖决策模型最常见的用法：推测式扇出、实时审核、复合评分、护栏、检索重排、置信度门控、批量 Map-Reduce、超过 26 类的分组淘汰和 LLM 裁判。每一次点击都是对真实模型的调用。`}
+        desc={`${SCENARIOS.length} 个可交互的小应用，覆盖决策模型最常见的用法：推测式扇出、实时审核、复合评分、护栏、检索重排、置信度门控、批量 Map-Reduce、超过 26 类的分组淘汰和 LLM 裁判；后三个用统一模型做信息抽取：类型化实体、事件流水线和三元组图谱。每一次点击都是对真实模型的调用。`}
       />
       <div className="scn-grid stagger">
         {SCENARIOS.map((s, i) => (

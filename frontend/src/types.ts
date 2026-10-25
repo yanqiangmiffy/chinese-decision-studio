@@ -63,6 +63,30 @@ export interface TournamentResult {
   latency_ms: number;
 }
 
+export interface Entity {
+  text: string;
+  label: string;
+  /** 字符位置，左闭右开 */
+  start: number;
+  end: number;
+  score: number;
+}
+
+export interface ExtractResult {
+  task: "extraction";
+  model: string;
+  text: string;
+  entities: Entity[];
+  latency_ms: number;
+}
+
+export interface ExtractDecideResult {
+  task: "decision";
+  model: string;
+  answers: Record<string, Answer>;
+  latency_ms: number;
+}
+
 export interface BatchResponse {
   model: string;
   results: (DecisionResponse | { error: string })[];
@@ -86,6 +110,8 @@ export interface Health {
     model?: string;
   };
   llm: { configured: boolean; online: boolean; model: string | null };
+  /** 统一模型服务（抽取）：configured = 后端配置了 EXTRACTION_BASE_URL */
+  extraction: { configured: boolean; online: boolean; base_url: string | null; model: string | null };
   can_reload: boolean;
 }
 

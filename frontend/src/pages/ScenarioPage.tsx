@@ -16,6 +16,9 @@ const VIEWS: Record<string, ReturnType<typeof lazy>> = {
   reviews: lazy(() => import("./scenarios/ReviewInsights")),
   judge: lazy(() => import("./scenarios/LLMJudge")),
   intents: lazy(() => import("./scenarios/IntentTournament")),
+  extraction: lazy(() => import("./scenarios/ExtractionGallery")),
+  events: lazy(() => import("./scenarios/EventPipeline")),
+  triples: lazy(() => import("./scenarios/TripleGraph")),
 };
 
 export default function ScenarioPage({ id }: { id: string }) {

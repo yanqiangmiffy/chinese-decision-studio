@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     # 热更新检查点用的令牌，和 GPU 服务器部署目录下的 .admin-token 一致；留空 = 平台里不提供热更新
     DECISION_ADMIN_TOKEN: str = ""
 
+    # ---- 统一模型服务：chinese-decision 的 scripts/serve_unified.py（同一份权重做分类和跨度抽取）
+    # 留空 = 没有部署，平台里的抽取功能（实验台抽取模式、抽取类场景）自动降级
+    EXTRACTION_BASE_URL: str = ""
+    EXTRACTION_TIMEOUT: float = 60.0
+
     # ---- 对照大模型：任意 OpenAI 兼容端点；留空 = 不启用"决策模型 vs 大模型"对比
     LLM_BASE_URL: str = ""
     LLM_API_KEY: str = "EMPTY"

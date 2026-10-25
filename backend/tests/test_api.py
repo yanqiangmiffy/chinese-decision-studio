@@ -32,6 +32,62 @@ async def test_health_reports_dependencies(client):
     assert data["database"] is True and data["decision"]["online"] is True and data["llm"]["configured"] is False
 
 
+async def test_health_reports_the_extraction_service(client):
+    data = (await client.get("/api/health")).json()
+    assert data["extraction"] == {
+        "configured": True,
+        "base_url": "http://fake-extraction",
+        "online": True,
+        "model": None,
+    }
+
+
+async def test_extract_passes_text_and_types_through_without_writing_history(client):
+    body = {"text": "张三在北京工作", "types": {"北京": "地名", "张三": ""}, "threshold": 0.2}
+    resp = await client.post("/api/extract", json=body)
+    assert resp.status_code == 200
+    assert sorted((e["label"], e["start"]) for e in resp.json()["entities"]) == [("北京", 3), ("张三", 0)]
+    assert client.unified.calls == ["extract"]
+    assert (await client.get("/api/history")).json()["total"] == 0
+
+
+async def test_extract_validates_the_request(client):
+    for bad in (
+        {"text": "", "types": {"a": ""}},
+        {"text": "x", "types": {}},
+        {"text": "x", "types": {" ": "空名"}},
+        {"text": "x", "types": {"a": "x" * 601}},
+        {"text": "x", "types": {"a": ""}, "threshold": 1.5},
+    ):
+        assert (await client.post("/api/extract", json=bad)).status_code == 422, bad
+    assert client.unified.calls == []
+
+
+async def test_extract_decide_answers_questions_with_the_unified_model(client):
+    body = {
+        "state": {"句子": "公司质押了股份，是"},  # 假服务：上下文里有“是”就回答是
+        "questions": {"质押": {"type": "noul", "instructions": "是否发生质押？"}},
+    }
+    resp = await client.post("/api/extract/decide", json=body)
+    assert resp.status_code == 200 and resp.json()["answers"]["质押"]["noul"] > 0.5
+    assert client.unified.calls == ["ask"]
+    bad = await client.post("/api/extract/decide", json={"state": "x", "questions": {"q": {"type": "choice"}}})
+    assert bad.status_code == 422
+
+
+async def test_extraction_is_503_when_the_service_is_not_configured(client):
+    from app.deps import get_extraction_client
+    from app.main import app
+    from tests.conftest import UnconfiguredExtraction
+
+    app.dependency_overrides[get_extraction_client] = lambda: UnconfiguredExtraction()
+    resp = await client.post("/api/extract", json={"text": "x", "types": {"a": ""}})
+    assert resp.status_code == 503 and "EXTRACTION_BASE_URL" in resp.json()["detail"]
+    health = (await client.get("/api/health")).json()
+    assert health["extraction"]["configured"] is False and health["extraction"]["online"] is False
+    assert health["decision"]["online"] is True  # 抽取没配置，决策功能照常
+
+
 async def test_decide_logs_history_and_labels_flow_into_suite(client):
     resp = await client.post("/api/decide", json={**TICKET, "title": "发票"})
     assert resp.status_code == 200
